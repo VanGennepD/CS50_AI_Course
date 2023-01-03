@@ -91,9 +91,57 @@ def shortest_path(source, target):
 
     If no possible path, returns None.
     """
+    # Initialize frontier to just the starting person ("source" gives person ID)
+    start = Node(state=source, parent=None, action=None)
 
-    # TODO
-    raise NotImplementedError
+    # Using QueueFrontier for breadth-first search
+    frontier = QueueFrontier()
+    frontier.add(start)
+    
+    # Initialize an empty explored set
+    explored = set()
+
+    # Keep looping until solution found
+    while True:
+
+        # If nothing left in frontier, then no path
+        if frontier.empty():
+            raise Exception("no solution")
+
+        # Store all name IDs in frontier
+        frontier_ids = [node.state for node in frontier.frontier]
+
+        # Check if target is in frontier before moving on
+        if target in frontier_ids:
+            node = frontier.frontier[frontier_ids.index(target)]
+        else:
+            # Choose a random node from the frontier (FIFO)
+            node = frontier.remove()
+
+        # If node is the goal, then we have a solution
+        if (node.state == target):
+            actions = []
+            cells = []
+            while node.parent is not None:
+                actions.append(node.action)
+                cells.append(node.state)
+                node = node.parent
+            actions.reverse()
+            cells.reverse()
+            # Zip the two lists together
+            zipped_lists = zip(actions, cells)
+            # Convert the zipped lists into a list of tuples
+            path = list(zipped_lists)
+            return path
+
+        # Mark node as explored
+        explored.add(node.state)
+
+        # Add co-stars to frontier
+        for action, state in neighbors_for_person(node.state):
+            if not frontier.contains_state(state) and state not in explored:
+                child = Node(state=state, parent=node, action=action)
+                frontier.add(child)
 
 
 def person_id_for_name(name):
