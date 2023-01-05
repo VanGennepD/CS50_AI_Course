@@ -3,6 +3,7 @@ Tic Tac Toe Player
 """
 
 import math
+import copy
 
 X = "X"
 O = "O"
@@ -22,6 +23,9 @@ def player(board):
     """
     Returns player (X or O) who has the next turn on a board.
     """
+    # If it is the end, return none
+    if terminal(board):
+        return None
     # If there are more X's, return O, and vise versa
     x_count = 0
     o_count = 0
@@ -45,7 +49,7 @@ def actions(board):
     empty_spots = []       
     for i, row in enumerate(board):
             for j, element in enumerate(row):
-                if element == "X":
+                if element == EMPTY:
                     empty_spots.append((i, j))
 
     return empty_spots
@@ -55,49 +59,69 @@ def result(board, action):
     """
     Returns the board that results from making move (i, j) on the board.
     """
+    # If action is not a valid action for the board, raise an exception.
+    if action[0] not in [0,1,2] or action[1] not in [0,1,2]:
+        raise ValueError
+
+    # Creating a deep copy so that I don't modify the real board during minimax
+    deep_copy_board = copy.deepcopy(board)
     # Get the row and column of the action
     row = action[0]
     col = action[1]
     # If the player is "O", place an "O" at the action location on the board.
-    board[row][col] = player(board)
-    return board
+    deep_copy_board[row][col] = player(deep_copy_board)
+    return deep_copy_board
 
 
 def winner(board):
     """
     Returns the winner of the game, if there is one.
     """
-    raise NotImplementedError
+    # Check to see if someone has won horizontally
+    for row in board:
+        if (row[0] == row[1] == row[2] == X):
+            return X
+        elif (row[0] == row[1] == row[2] == O):
+            return O
+    # Check to see if someone has won vertically
+    for col in range(3):
+        if board[0][col] == board[1][col] == board[2][col] == X:
+            return X
+        elif board[0][col] == board[1][col] == board[2][col] == O:
+            return O
+    
+    # Check to see if someone has won diagonally 
+    if board[0][0] == board[1][1] == board[2][2] == X:
+        return X
+    elif board[0][2] == board[1][1] == board[2][0] == X:
+        return X
+    elif board[0][0] == board[1][1] == board[2][2] == O:
+        return O
+    elif board[0][2] == board[1][1] == board[2][0] == O:
+        return O
 
+    # If no winner, return none
+    return None
 
 def terminal(board):
     """
     Returns True if game is over, False otherwise.
     """
-    # Check to see if someone has won horizontally
-    for row in board:
-        if row[0] == row[1] == row[2] and row[0] != EMPTY:
-            return True
-    
-    # Check to see if someone has won vertically
-    for col in range(3):
-        if board[0][col] == board[1][col] == board[2][col] and board[0][col] != EMPTY:
-            return True
-    
-    # Check to see if someone has won diagonally 
-    if board[0][0] == board[1][1] == board[2][2] and board[0][0] != EMPTY:
+    # If utility != 0, the game has been won
+    if utility(board) != 0:
         return True
-    if board[0][2] == board[1][1] == board[2][0] and board[0][2] != EMPTY:
-        return True
-    
-    # Check for draw
+
+    # Check for initial board
+    if board == initial_state():
+        return False
+
+    # If utility is zero, but there is an empty spot, not terminal
     for row in board:
         if EMPTY in row:
-            return True
-    
-    # If nobody has won and if there isn't a draw, then the game isn't over
-    return False
+            return False
 
+    # Otherwise, full board -> terminal
+    return True
 
 
 def utility(board):
@@ -118,4 +142,45 @@ def minimax(board):
     """
     Returns the optimal action for the current player on the board.
     """
-    raise NotImplementedError
+    # If the game is over, do nothing
+    if terminal(board):
+        return None
+
+    # If player X is choosing, maximize utility
+    elif player(board) == X:
+        # Set the initial best value to negative infinity (or some very negative number)
+        best_val = -math.inf
+        best_move = None
+        # Find the best action using minimax
+        for action in actions(board):
+            val = min_value(result(board, action))
+            if val > best_val:
+                best_val = val
+                best_move = action
+        return best_move
+    # If it is O's turn, minimize 
+    else:
+        best_val = math.inf
+        best_move = None
+        for action in actions(board):
+            val = max_value(result(board, action))
+            if val < best_val:
+                best_val = val
+                best_move = action
+        return best_move
+
+def min_value(board):
+    if terminal(board):
+        return utility(board)
+    v = math.inf
+    for action in actions(board):
+        v = min(v, max_value(result(board, action)))
+    return v
+
+def max_value(board):
+    if terminal(board):
+        return utility(board)
+    v = -math.inf
+    for action in actions(board):
+        v = max(v, min_value(result(board, action)))
+    return v
